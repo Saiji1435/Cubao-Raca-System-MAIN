@@ -1,58 +1,104 @@
+"use client";
+
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiFetch } from "../../lib/api"; // Ensure this has credentials: 'include'
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
-import { Check, X, Eye } from "lucide-react";
-
-const pendingRequests = [
-  {
-    id: "REQ-001",
-    requester: "Dr. Smith",
-    room: "Computer Lab 1",
-    date: "Oct 24, 2023",
-    time: "10:00 AM - 12:00 PM",
-    purpose: "CS101 Midterm Exam",
-  },
-  {
-    id: "REQ-002",
-    requester: "Prof. Jones",
-    room: "AVR Room",
-    date: "Oct 25, 2023",
-    time: "2:00 PM - 4:00 PM",
-    purpose: "Guest Lecture Series",
-  },
-];
+import { Check, X, Eye, Loader2, Inbox } from "lucide-react";
 
 export default function ApprovalsPage() {
+  const queryClient = useQueryClient();
+
+  // 1. Fetch Real Data from NestJS
+  const { data: requests, isLoading } = useQuery({
+    queryKey: ["approvals-pending"],
+    queryFn: () => apiFetch("/requests/pending"),
+  });
+
+  // 2. Handle Status Update (Approve/Deny)
+  const mutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/requests/${id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) throw new Error("Failed to update status");
+      return res.json();
+    },
+    onSuccess: () => {
+      // Invalidate and refetch to clear the item from the list
+      queryClient.invalidateQueries({ queryKey: ["approvals-pending"] });
+    },
+  });
+
+  if (isLoading) return (
+    <div className="p-20 flex flex-col items-center justify-center gap-4 text-slate-400">
+      <Loader2 className="animate-spin" />
+      <span className="text-[10px] font-black uppercase tracking-widest">Loading Approval Queue...</span>
+    </div>
+  );
+
   return (
     <div className="p-8">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Pending Approvals</h1>
-        <Badge variant="secondary">{pendingRequests.length} New Requests</Badge>
+        <div>
+          <h1 className="text-2xl font-black uppercase tracking-tighter text-slate-900">Pending Approvals</h1>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">STI College Cubao | RACA Queue</p>
+        </div>
+        <Badge className="bg-blue-600 text-white border-none">
+          {requests?.length || 0} New Requests
+        </Badge>
       </div>
 
       <div className="space-y-4">
-        {pendingRequests.map((req) => (
-          <div key={req.id} className="bg-white border rounded-xl p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-sm">
+        {requests?.length === 0 && (
+          <div className="border-2 border-dashed border-slate-200 rounded-xl p-12 text-center text-slate-400">
+            <Inbox className="mx-auto mb-2 opacity-20" size={40} />
+            <p className="text-xs font-bold uppercase tracking-widest">Queue Clear. No pending requests.</p>
+          </div>
+        )}
+
+        {requests?.map((req: any) => (
+          <div key={req.id} className="bg-white border rounded-xl p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-sm hover:border-blue-200 transition-all">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
-                  {req.id}
+                <span className="text-[9px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 uppercase">
+                  {req.id.substring(0, 8)}
                 </span>
-                <h3 className="font-bold text-slate-900">{req.purpose}</h3>
+                <h3 className="font-black text-slate-900 uppercase text-sm tracking-tight">{req.purpose}</h3>
               </div>
               <p className="text-sm text-slate-500">
-                Requested by <span className="font-medium text-slate-700">{req.requester}</span> for {req.room}
+                Requested by <span className="font-bold text-slate-700 uppercase">{req.requesterName}</span> for <span className="text-blue-600 font-bold uppercase">{req.room?.name}</span>
               </p>
-              <p className="text-xs text-slate-400">{req.date} | {req.time}</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">
+                {req.startTime} — {req.endTime}
+              </p>
             </div>
 
             <div className="flex gap-2 w-full md:w-auto">
-              <Button variant="outline" size="sm" className="flex-1 md:flex-none gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex-1 md:flex-none gap-2 text-[10px] font-black uppercase tracking-widest"
+              >
                 <Eye size={14} /> Details
               </Button>
-              <Button variant="outline" size="sm" className="flex-1 md:flex-none gap-2 text-red-600 hover:bg-red-50 hover:text-red-700 border-red-100">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => mutation.mutate({ id: req.id, status: "REJECTED" })}
+                disabled={mutation.isPending}
+                className="flex-1 md:flex-none gap-2 text-red-600 hover:bg-red-50 border-red-100 text-[10px] font-black uppercase tracking-widest"
+              >
                 <X size={14} /> Deny
               </Button>
-              <Button size="sm" className="flex-1 md:flex-none gap-2 bg-emerald-600 hover:bg-emerald-700">
+              <Button 
+                size="sm" 
+                onClick={() => mutation.mutate({ id: req.id, status: "APPROVED" })}
+                disabled={mutation.isPending}
+                className="flex-1 md:flex-none gap-2 bg-emerald-600 hover:bg-emerald-700 text-[10px] font-black uppercase tracking-widest"
+              >
                 <Check size={14} /> Approve
               </Button>
             </div>
