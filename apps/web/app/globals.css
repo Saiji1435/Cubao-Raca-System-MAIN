@@ -1,13 +1,23 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+@layer base {
+  :root {
+    /* STI Brand Palette */
+    --sti-blue: 0 54 249;   /* #0036F9 */
+    --sti-gold: 255 212 71; /* #FFD447 */
+    --sti-navy: 1 44 64;    /* #012C40 */
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased selection:bg-blue-100;
+  }
 }
 
-body {
-  @apply bg-slate-50 text-slate-900;
+/* Custom scrollbar for your scrollable main content */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 rounded-full hover:bg-slate-400 transition-colors;
 }

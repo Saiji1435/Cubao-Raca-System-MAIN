@@ -7,71 +7,32 @@ import {
   TableHeader, 
   TableRow 
 } from "../ui/table";
-import { Badge } from "../ui/badge";
 
-interface EventLog {
-  id: string;
-  action: string;
-  summary: string;
-  createdAt: string | Date;
-  user: {
-    name: string | null;
-    email: string;
-  };
-}
-
-interface EventLogTableProps {
-  logs: EventLog[];
-}
-
-export default function EventLogTable({ logs }: EventLogTableProps) {
+export default function EventLogTable({ logs }: { logs: any[] }) {
   return (
-    <div className="rounded-md border bg-white overflow-hidden">
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-slate-50">
-            <TableHead className="w-[180px]">Date & Time</TableHead>
-            <TableHead>Action</TableHead>
-            <TableHead>User</TableHead>
-            <TableHead>Summary</TableHead>
+    <Table>
+      <TableHeader>
+        <TableRow className="bg-slate-50">
+          <th className="p-3 text-[10px] font-black uppercase text-slate-500">Timestamp</th>
+          <th className="p-3 text-[10px] font-black uppercase text-slate-500">User</th>
+          <th className="p-3 text-[10px] font-black uppercase text-slate-500">Action</th>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {logs?.map((log) => (
+          <TableRow key={log.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+            <TableCell className="p-3 text-[10px] font-medium text-slate-400">
+              {format(new Date(log.createdAt), 'MMM dd, HH:mm')}
+            </TableCell>
+            <TableCell className="p-3">
+              <span className="text-[11px] font-bold text-slate-700 uppercase">{log.user?.name}</span>
+            </TableCell>
+            <TableCell className="p-3 text-[11px] text-slate-600 font-medium">
+              {log.summary}
+            </TableCell>
           </TableRow>
-        </TableHeader>
-        <TableBody>
-          {logs.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
-                No activity logs found.
-              </TableCell>
-            </TableRow>
-          ) : (
-            logs.map((log) => (
-              <TableRow key={log.id} className="hover:bg-slate-50/50">
-                <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                  {format(new Date(log.createdAt), 'MMM dd, yyyy HH:mm')}
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline" className="uppercase font-semibold text-[10px]">
-                    {log.action.replace(/_/g, ' ')}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex flex-col">
-                    <span className="font-medium text-slate-900">
-                      {log.user.name || 'Unknown User'}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {log.user.email}
-                    </span>
-                  </div>
-                </TableCell>
-                <TableCell className="max-w-md truncate text-slate-700">
-                  {log.summary}
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </div>
+        ))}
+      </TableBody>
+    </Table>
   );
 }
